@@ -58,12 +58,25 @@ button, input, select, textarea { font: inherit; }
 
 #__next { min-height: 100%; }
 
+html, body, #__next {
+  min-width: 0;
+}
+
+.main-content {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
 /* ── Card ── */
 .card {
   background: var(--surface);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-card);
+  width: 100%;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .card-hover {
@@ -77,6 +90,12 @@ button, input, select, textarea { font: inherit; }
 }
 
 /* ── Inputs ── */
+.input,
+.select,
+.btn {
+  min-width: 0;
+}
+
 .input {
   width: 100%;
   border-radius: var(--radius-sm);
@@ -165,6 +184,7 @@ button, input, select, textarea { font: inherit; }
 /* ── Table ── */
 .table-scroll {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .data-table {
   width: 100%;
@@ -173,6 +193,10 @@ button, input, select, textarea { font: inherit; }
   text-align: left;
   border-collapse: separate;
   border-spacing: 0;
+}
+.data-table th,
+.data-table td {
+  min-width: 0;
 }
 .data-table thead th {
   padding: 0.625rem 1rem;
@@ -199,6 +223,10 @@ button, input, select, textarea { font: inherit; }
   flex-direction: column;
   gap: 1rem;
   margin-bottom: 1.5rem;
+  min-width: 0;
+}
+.page-header > * {
+  min-width: 0;
 }
 @media (min-width: 640px) {
   .page-header { flex-direction: row; align-items: center; justify-content: space-between; }
