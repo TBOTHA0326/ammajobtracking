@@ -408,12 +408,12 @@ function ShellInner({ children }: { children: ReactNode }) {
         @media (min-width: 768px) {
           .md-sidebar { display: block !important; }
           .mobile-topbar { display: none !important; }
-          .main-content { margin-left: 260px; }
+          .main-content { margin-left: 260px; width: calc(100% - 260px); }
         }
         @media (max-width: 767px) {
           .md-sidebar { display: none !important; }
           .mobile-topbar { display: flex !important; }
-          .main-content { margin-left: 0; padding: 20px 16px !important; }
+          .main-content { margin-left: 0; padding: 20px 16px !important; width: 100% !important; }
         }
       `}</style>
     </div>
