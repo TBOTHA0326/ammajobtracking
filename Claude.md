@@ -1,246 +1,381 @@
-# Amma Spares Galore — Strip Job Tracking System
-
-A salvage vehicle dismantling and parts sales management system for Amma Spares Galore, a South African salvage yard and parts stripping operation. Tracks donor vehicles from acquisition through dismantling, parts cataloguing, and sale.
-
----
-
-## Core Domain
-
-### Strip Job
-The central entity. A strip job represents a single donor vehicle acquired for dismantling. The job tracks the vehicle from acquisition through full or partial stripping, parts cataloguing, and final disposition. Jobs are never hard-deleted.
-
-**Key attributes:** job number, description, donor vehicle, status, dismantler, category (Full Strip / Partial Strip / Parts Only / Write-off Assessment), branch, archived flag, acquired date.
-
-### Donor Vehicle
-The vehicle being dismantled. Acquired 2nd-hand, accident-damaged, flood-damaged, or as a written-off unit. Vehicle details (make, model, year, variant, engine, VIN, odometer) are captured for accurate parts cataloguing and cross-referencing.
-
-**Key attributes:** registration, make, model, year, variant, engine, VIN, odometer, condition, acquisition source, acquisition cost.
-
-### Harvested Parts
-Parts stripped from a donor vehicle. Each part is catalogued with condition, internal part number, allocated acquisition cost, and a list price for sale. Parts can be in stock, reserved for a buyer, sold, or scrapped.
-
-**Key attributes:** associated strip job, part number, description, quantity, condition (Good / Fair / Refurb Required / Scrap), acquisition cost, list price, status (In Stock / Reserved / Sold / Scrapped), buyer reference.
-
-### Buyer
-A person or business that purchases harvested parts. Buyers can be retail customers (individuals) or trade buyers (workshops, dealers, other resellers).
-
-**Key attributes:** name, email, phone, branch, type (Trade / Retail / Dealer).
-
-### Dismantler
-The technician assigned to strip the donor vehicle. A strip job has one primary dismantler (optional). Dismantlers are associated with a branch.
+# AMMA Spares – Job Tracking System
+## Full System Specification (Claude.md)
 
 ---
 
-## Strip Job Lifecycle
+## 1. Overview
 
-```
-Assessment → Awaiting Collection → Vehicle Received → Stripping → Parts Catalogued
-→ Quality Check → Parts Listed → Completed / Scrapped / Cancelled
-```
+This project is a **modern, full-stack job tracking system** built specifically for **AMMA Spares**, a specialist VW Amarok parts supplier and mechanical workshop.
 
-Statuses are defined in configurable metadata rather than hardcoded enums. Each status has flags for:
-- `show_on_dashboard` — whether to surface on the main board
-- `is_terminal` — marks end states (Completed, Scrapped, Cancelled)
+The system is designed to:
+- Track mechanical jobs from intake to completion
+- Manage customers, vehicles, and parts
+- Monitor workshop workflow and technician assignments
+- Provide a clean, fast, and mobile-friendly experience
 
-Every status change is recorded in a history log with entry time, exit time, and duration in minutes.
-
----
-
-## Workflow Summary
-
-1. Strip job created (Assessment) — donor vehicle details, acquisition source, and cost captured; estimated completion date set.
-2. Vehicle collected from seller or auction — status moves to "Awaiting Collection" until physical arrival.
-3. Vehicle arrives at yard — status moves to "Vehicle Received"; odometer and condition confirmed.
-4. Dismantler assigned; stripping begins — status moves to "Stripping".
-5. All usable parts removed and photographed — status moves to "Parts Catalogued".
-6. Parts condition-graded and priced — quality check performed.
-7. Parts listed in system as available for sale — status moves to "Parts Listed".
-8. All parts sold, scrapped, or allocated — job closed as "Completed".
-9. Vehicles with no usable parts close as "Scrapped".
-10. Archived jobs can be restored (separate permission required).
+The application must be built **in one complete implementation pass**, production-ready.
 
 ---
 
-## Parts & Inventory
+## 2. Tech Stack
 
-- Strip jobs have harvested parts (catalogued line items). Each part records allocated acquisition cost and sell price for margin tracking.
-- Parts have four condition grades: **Good** (direct sale), **Fair** (minor cosmetic issues), **Refurb Required** (needs work before sale), **Scrap** (no sale value).
-- Parts can be **In Stock** (available), **Reserved** (buyer committed, awaiting collection/payment), **Sold** (transaction complete), or **Scrapped** (disposed of).
-- Acquisition cost per part is allocated from the total donor vehicle purchase price.
-- No full inventory module in v1 — parts on jobs are catalogued with free-text description + internal part number.
-
----
-
-## In-App Alerts
-
-- Strip jobs past estimated completion date
-- Parts reserved for >7 days without sale finalisation
-- Jobs in "Stripping" status for >5 days
-
----
-
-## Multi-Branch
-
-A `branch` field on Strip Job, Buyer, Donor Vehicle, and Dismantler supports multiple physical yard locations sharing one system. Branch selection is available in the sidebar so users can work within the correct location context.
-
----
-
-## Permissions
-
-| Permission | Access |
-|---|---|
-| `jobs.view` | View strip jobs |
-| `jobs.create` | Create new strip jobs |
-| `jobs.edit` | Edit job details and harvested parts |
-| `jobs.status` | Change job status |
-| `jobs.archive` | Archive / restore jobs |
-| `archive.view` | View archived jobs |
-| `invoices.create` | Generate invoices / sales receipts from parts |
-| `reports.view` | Access reporting module |
-
----
-
-## Key Design Decisions
-
-- **Soft deletes** — `is_archived` flag; nothing is hard-deleted.
-- **Donor vehicle as first-class entity** — enables full strip history per VIN (which parts were harvested, what sold for how much).
-- **Status as data** — adding or renaming statuses (e.g. "Awaiting Compliance Check") requires no code change.
-- **Harvested parts on job** — sales receipts are generated directly from catalogued parts, no separate entry.
-- **Branch isolation** — multi-location safe from day one.
-
----
-
-## Tech Stack
-
-- **Framework:** Next.js (React + TypeScript) — deployed on Vercel
-- **Persistence:** MVP data managed in local app state / browser storage, with room to add a backend later.
+- **Frontend:** React + TypeScript
+- **Framework:** Next.js (App Router)
 - **Styling:** Tailwind CSS
-- **Forms:** react-hook-form
-- **Auth:** simple session or mock auth for MVP; production auth can be added after initial release.
+- **Backend / DB / Auth:** Supabase
+- **Hosting:** Vercel
 
 ---
 
-## UI / UX Design System
+## 3. Design System
 
-Inspired by the SHE Risk & Compliance platform — same structural DNA, adapted for an operations/yard context.
+### 3.1 Visual Identity
 
-### Visual Style
+- **Primary Background:** White
+- **Dark Mode:** Fully supported
+- **Primary Accent:** Orange
+- **Secondary Accent:** Subtle Blue highlights
+- **Typography:** Clean, modern sans-serif (Inter or similar)
 
-- **Classification:** Minimal flat — clean surfaces, no glassmorphism, subtle layered shadows
-- **Mode:** Light mode primary; dark sidebar for persistent navigation contrast
-- **Tone:** Professional, dense-but-scannable, operations-first
+### 3.2 Design Principles
 
-### Color Palette
+- Minimal, clean, high-contrast UI
+- Soft shadows, rounded corners (lg/2xl)
+- Bento-style dashboard layout
+- Smooth transitions and hover states
+- No emojis — use icon libraries (Lucide or similar)
 
-| Token | Hex | Usage |
-|---|---|---|
-| `--primary` | `#84cc16` | Active nav, primary buttons, key accents |
-| `--primary-dark` | `#65a30d` | Button hover state |
-| `--bg` | `#f0f1f5` | Page background |
-| `--surface` | `#ffffff` | Card / modal background |
-| `--surface-soft` | `#f8fafc` | Alternate row, input background |
-| `--sidebar-bg` | `#0c0d14` | Sidebar background |
-| `--text-primary` | `#0f172a` | Body text |
-| `--text-muted` | `#64748b` | Secondary labels, metadata |
-| `--border` | `rgba(15,23,42,0.08)` | Card and input borders |
-| Success | `#10b981` | Completed, Sold, parts catalogued |
-| Warning | `#f59e0b` | Reserved parts, overdue completion |
-| Danger | `#e11d48` | Overdue jobs, Cancelled, Scrapped |
-| Info | `#0ea5e9` | Informational states |
+---
 
-### Typography
+## 4. Layout Structure
 
-- **Font family:** Geist Sans, system-ui fallback; Geist Mono for job numbers / part numbers
-- **Scale:** `xs` 12px · `sm` 14px · `base` 16px · `lg` 18px · `2xl` 24px
-- **Weights:** Regular 400 (body) · Medium 500 (labels) · Semibold 600 (headings)
-- **Labels:** Uppercase + `tracking-wide` for section headers and sidebar nav categories
+### 4.1 Global Layout
 
-### Layout
+- **Left Sidebar Navigation (fixed)**
+- **Top Bar (optional):**
+  - User profile
+  - Notifications
+  - Quick search
 
-- **Sidebar:** 256px fixed, dark `#0c0d14`, hidden on mobile
-- **Mobile header:** 56px top bar with hamburger + branch switcher
-- **Content area:** Full remaining width, `p-6` padding, `max-w-7xl` container
-- **Spacing rhythm:** 4 / 8 / 12 / 16 / 24 / 32px increments
-- **Breakpoints:** 375 (mobile) · 768 (tablet) · 1024 (desktop) · 1440 (wide)
+- **Main Content Area (responsive)**
 
-### Component Patterns
+---
 
-**Cards**
-- `bg-white rounded-2xl` with two-layer shadow: `0 1px 3px rgba(15,23,42,0.04), 0 6px 20px rgba(15,23,42,0.06)`
-- Consistent `p-5` padding; section header `px-6 py-4 border-b`
+### 4.2 Sidebar Navigation Tabs
 
-**Status Badges**
-- Pill-shaped `rounded-full`, semantic background + text color pairs
-- Variants: `assessment` (slate) · `awaiting-collection` (sky) · `vehicle-received` (sky) · `stripping` (blue) · `parts-catalogued` (indigo) · `quality-check` (emerald) · `parts-listed` (emerald) · `completed` (slate muted) · `written-off-scrap` (rose) · `cancelled` (rose)
-- Overdue indicator: red dot or `-N days` chip in danger color
+1. Dashboard
+2. Jobs
+3. Customers
+4. Vehicles
+5. Parts & Inventory
+6. Technicians
+7. Calendar / Scheduling
+8. Reports & Analytics
+9. Settings
 
-**Buttons**
-- Primary: lime `#84cc16`, dark text, shadow, hover `#65a30d`
-- Secondary: `slate-950` bg, white text
-- Danger: `rose-600` bg, white text
-- Ghost: white + subtle border
-- Sizes: sm · md · lg — consistent `rounded-xl`
+---
 
-**Data Table (Strip Jobs List)**
-- Sticky header, alternating row subtle tint (`surface-soft`)
-- Inline status badge per row; completion date chip (green → amber → red)
-- Row actions: icon-only (Lucide) with `title` tooltip + `cursor-pointer`
-- Sortable column headers with `aria-sort`
-- Virtualized for large datasets (50+ rows)
+## 5. Core Modules
 
-**Sidebar Navigation**
-- Active item: 3px left lime border + subtle lime-tinted bg
-- Nav category labels: uppercase, `tracking-[0.2em]`, `text-xs`, muted
-- Icons: Lucide, stroke-consistent, 20px, aligned to text baseline
-- Branch switcher at top of sidebar
+---
 
-**Forms / Modals**
-- `rounded-2xl` modal, `bg-black/30` backdrop
-- Inputs: `rounded-xl`, focus `ring-2 ring-[#84cc16]`
-- Error state: `bg-rose-50 border-rose-300` + message below field
-- Labels visible (never placeholder-only); required fields marked `*`
+## 5.1 Dashboard (Bento Layout)
 
-**Dashboard KPI Cards**
-- 2-col mobile → 4-col desktop grid, `gap-4`
-- Icon + metric + label + trend delta (colored arrow)
-- Key metrics: Active Strip Jobs · Overdue Completion · Parts In Stock · Parts Listed for Sale
+### Purpose:
+Quick overview of entire business operations.
 
-### Page Structure
+### Components:
 
-#### Dashboard
-- KPI row (Active Strip Jobs, Overdue, Parts In Stock, Parts Listed)
-- Jobs by Status bar chart (Recharts) + daily completions trend line
-- Recent Activity feed (status changes, new acquisitions, parts catalogued)
-- Quick Actions: New Strip Job · Catalogue Parts · Update Status
+- Active Jobs (count + status breakdown)
+- Jobs in Progress
+- Completed Jobs Today
+- Pending Parts Orders
+- Technician Workload
+- Revenue Snapshot
+- Recent Activity Feed
+- Upcoming Scheduled Jobs
 
-#### Strip Jobs List
-- Filter bar: Status · Dismantler · Branch · Date range · Search (job no, rego, make/model)
-- Sortable table with status badge, vehicle rego, make/model, dismantler, estimated completion date
-- Bulk actions (archive, status change) via checkbox selection
-- Mobile: collapses to card-stack view
+### Layout:
+- Grid-based Bento layout
+- Cards of varying sizes
+- Real-time updates (Supabase subscriptions)
 
-#### Strip Job Detail
-- Header: Job No · Donor Vehicle (Rego + Make/Model) · Status badge · Action buttons
-- Tabs: Overview · Harvested Parts · Notes · Status History
-- Overview: donor vehicle details, acquisition info, dismantler, dates, description
-- Harvested Parts: catalogued parts table with condition, acquisition cost, list price, status, add/edit/remove rows
-- Status History: timeline with duration per stage
+---
 
-#### Buyers
-- List of buyers with part purchase count and total spend
-- Buyer detail: contact info + type (Trade/Retail/Dealer) + purchase history
+## 5.2 Jobs Module
 
-#### Archive
-- Separate view, requires `archive.view` permission
-- Restore action visible only with `jobs.archive` permission
+### Core Feature of the System
 
-### UX Rules
+### Job Fields:
 
-- Every status transition is confirmed (dialog) before firing — prevents accidental moves
-- Overdue completion jobs surface to the top of the default list sort
-- Completion date displayed as: `+N days` (green) · `Today` (amber) · `-N days` (red)
-- Destructive actions (archive, cancel, scrap) use `rose-600` and are separated from primary actions
-- No horizontal scroll on mobile; table collapses to card-stack view at < 768px
-- Toasts auto-dismiss in 4s; success = emerald, error = rose, info = sky
-- Empty states include an icon, message, and primary CTA ("Create your first strip job")
-- Skeleton loaders for async content (no blank frames)
+- Job ID (auto-generated)
+- Customer ID
+- Vehicle ID
+- Job Title
+- Description
+- Status:
+  - Pending
+  - In Progress
+  - Waiting for Parts
+  - Completed
+  - Cancelled
+- Priority (Low, Medium, High)
+- Assigned Technician(s)
+- Estimated Cost
+- Final Cost
+- Start Date
+- Due Date
+- Completion Date
+
+---
+
+### Features:
+
+- Create / Edit / Delete Jobs
+- Drag-and-drop Kanban view (status columns)
+- Table view (sortable, filterable)
+- Job timeline tracking
+- Attach notes and updates
+- Upload images/documents
+- Link parts used to job
+
+---
+
+## 5.3 Customers Module
+
+### Fields:
+
+- Full Name
+- Contact Number
+- Email
+- Address
+- Notes
+- Linked Vehicles
+
+### Features:
+
+- Customer history
+- All jobs per customer
+- Total spend tracking
+
+---
+
+## 5.4 Vehicles Module
+
+### Fields:
+
+- Make (VW)
+- Model (Amarok)
+- Year
+- VIN Number
+- Registration Number
+- Mileage
+- Linked Customer
+
+### Features:
+
+- Vehicle service history
+- Linked jobs
+- Notes and diagnostics
+
+---
+
+## 5.5 Parts & Inventory
+
+### Fields:
+
+- Part Name
+- Category
+- Type:
+  - New
+  - Used
+  - Genuine
+  - Economy / Exchange
+- Stock Quantity
+- Cost Price
+- Selling Price
+- Supplier
+- Notes
+
+---
+
+### Features:
+
+- Inventory tracking
+- Low stock alerts
+- Assign parts to jobs
+- Track part usage history
+
+---
+
+## 5.6 Technicians Module
+
+### Fields:
+
+- Name
+- Role
+- Contact Info
+- Active Jobs
+- Skill Tags
+
+---
+
+### Features:
+
+- Assign technicians to jobs
+- Workload tracking
+- Performance overview
+
+---
+
+## 5.7 Calendar / Scheduling
+
+### Features:
+
+- Job scheduling
+- Drag-and-drop calendar
+- Technician availability
+- Daily / Weekly / Monthly views
+
+---
+
+## 5.8 Reports & Analytics
+
+### Metrics:
+
+- Jobs completed per period
+- Revenue trends
+- Most common repairs
+- Technician productivity
+- Parts usage trends
+
+### Visuals:
+
+- Charts (Recharts)
+- Tables
+- Export to CSV
+
+---
+
+## 5.9 Settings
+
+- User management
+- Role-based access
+- Business info
+- Theme toggle (light/dark)
+
+---
+
+## 6. Database Design (Supabase)
+
+### Tables:
+
+#### users
+- id
+- email
+- role
+
+#### customers
+- id
+- name
+- phone
+- email
+- address
+- notes
+
+#### vehicles
+- id
+- customer_id
+- make
+- model
+- year
+- vin
+- registration
+- mileage
+
+#### jobs
+- id
+- customer_id
+- vehicle_id
+- title
+- description
+- status
+- priority
+- assigned_to
+- estimated_cost
+- final_cost
+- start_date
+- due_date
+- completed_at
+
+#### parts
+- id
+- name
+- category
+- type
+- stock
+- cost_price
+- selling_price
+- supplier
+
+#### job_parts
+- id
+- job_id
+- part_id
+- quantity
+
+#### technicians
+- id
+- name
+- role
+- contact
+
+---
+
+## 7. Authentication & Security
+
+- Supabase Auth (email/password)
+- Role-based access:
+  - Admin
+  - Manager
+  - Technician
+
+---
+
+## 8. UX Features
+
+- Global search (jobs, customers, vehicles)
+- Filters and sorting everywhere
+- Toast notifications
+- Loading skeletons
+- Mobile-first responsiveness
+- Keyboard shortcuts for power users
+
+---
+
+## 9. Performance Requirements
+
+- Fast initial load (Next.js SSR/ISR)
+- Optimized queries
+- Pagination for large datasets
+- Lazy loading components
+
+---
+
+## 10. Deployment
+
+- Deploy via Vercel
+- Environment variables for Supabase
+- Production-ready build
+
+---
+
+## 11. Final Notes
+
+- Entire system must be cohesive and polished
+- No placeholder UI
+- No incomplete modules
+- Every feature must be fully functional
+- Design must feel premium, modern, and clean
+
+This system should replace manual workflows, spreadsheets, and disconnected tools with a unified, efficient platform tailored for AMMA Spares operations.

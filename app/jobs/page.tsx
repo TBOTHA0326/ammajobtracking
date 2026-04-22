@@ -1,243 +1,209 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
-import { Car, ChevronRight, Plus, Search, X } from 'lucide-react';
-import { Shell } from '../../components/Shell';
-import { StatusBadge } from '../../components/StatusBadge';
-import { useAppData } from '../../components/AppDataProvider';
-import { getDismantlerName, getStatusColor, getStatusLabel } from '../../lib/sample-data';
+import { Plus, Wrench, CaretRight } from '@phosphor-icons/react';
+import { useApp } from '@/components/app-provider';
+import { PageHeader, SearchInput, StatusBadge, PriorityBadge, EmptyState } from '@/components/ui';
+import { formatDate, getDaysOverdue } from '@/lib/format';
+import type { JobStatus, JobPriority } from '@/lib/types';
 
-const TERMINAL_STATUSES = ['completed', 'cancelled', 'written-off-scrap'];
+const STATUS_OPTIONS: { value: '' | JobStatus; label: string }[] = [
+  { value: '', label: 'All Statuses' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'in-progress', label: 'In Progress' },
+  { value: 'waiting-parts', label: 'Waiting for Parts' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
 
-const CONDITION_LABELS: Record<string, { label: string; color: string }> = {
-  'accident-damaged': { label: 'Accident',  color: 'text-amber-400' },
-  'written-off':      { label: 'Write-off', color: 'text-rose-400' },
-  '2nd-hand':         { label: '2nd Hand',  color: 'text-slate-400' },
-  'flood-damaged':    { label: 'Flood',     color: 'text-sky-400' },
-};
-
-function CompletionChip({ dateStr }: { dateStr: string }) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const eta = new Date(dateStr);
-  eta.setHours(0, 0, 0, 0);
-  const diff = Math.round((eta.getTime() - today.getTime()) / 86_400_000);
-
-  if (diff < 0) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-md bg-rose-900/40 px-2 py-0.5 text-xs font-semibold text-rose-400">
-        {Math.abs(diff)}d overdue
-      </span>
-    );
-  }
-  if (diff === 0) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-md bg-amber-900/40 px-2 py-0.5 text-xs font-semibold text-amber-400">
-        Today
-      </span>
-    );
-  }
-  return (
-    <span className="mono text-xs text-emerald-400">
-      {dateStr}
-    </span>
-  );
-}
+const PRIORITY_OPTIONS: { value: '' | JobPriority; label: string }[] = [
+  { value: '', label: 'All Priorities' },
+  { value: 'high', label: 'High' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'low', label: 'Low' },
+];
 
 export default function JobsPage() {
-  const { jobs, statuses, activeBranch } = useAppData();
-  const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const { jobs, customers, vehicles } = useApp();
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'' | JobStatus>('');
+  const [priorityFilter, setPriorityFilter] = useState<'' | JobPriority>('');
 
-  const branchJobs = useMemo(
-    () => jobs.filter((j) => j.branchId === activeBranch && !j.isArchived),
-    [jobs, activeBranch],
-  );
+  const sorted = useMemo(() => {
+    return [...jobs].sort((a, b) => {
+      const aOverdue = !['completed', 'cancelled'].includes(a.status) ? getDaysOverdue(a.dueDate) : 0;
+      const bOverdue = !['completed', 'cancelled'].includes(b.status) ? getDaysOverdue(b.dueDate) : 0;
+      if (aOverdue !== bOverdue) return bOverdue - aOverdue;
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    });
+  }, [jobs]);
 
-  const openJobs = useMemo(
-    () => branchJobs.filter((j) => !TERMINAL_STATUSES.includes(j.status)),
-    [branchJobs],
-  );
-
-  const filteredJobs = useMemo(() => {
-    const search = query.toLowerCase();
-    return branchJobs
-      .filter((job) => {
-        const dv = job.donorVehicle;
-        const matchSearch =
-          !search ||
-          job.number.toLowerCase().includes(search) ||
-          dv.rego.toLowerCase().includes(search) ||
-          dv.make.toLowerCase().includes(search) ||
-          dv.model.toLowerCase().includes(search);
-        const matchStatus = statusFilter === 'all' || job.status === statusFilter;
-        return matchSearch && matchStatus;
-      })
-      .sort((a, b) => {
-        // Overdue first, then by estimated completion date ascending
-        const today = new Date().toISOString().split('T')[0];
-        const aOverdue = a.estimatedCompletionDate < today ? -1 : 1;
-        const bOverdue = b.estimatedCompletionDate < today ? -1 : 1;
-        if (aOverdue !== bOverdue) return aOverdue - bOverdue;
-        return a.estimatedCompletionDate.localeCompare(b.estimatedCompletionDate);
-      });
-  }, [branchJobs, query, statusFilter]);
-
-  const filterStatuses = statuses.filter((s) => s.showOnDashboard);
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return sorted.filter((job) => {
+      if (statusFilter && job.status !== statusFilter) return false;
+      if (priorityFilter && job.priority !== priorityFilter) return false;
+      if (q) {
+        const customer = customers.find((c) => c.id === job.customerId);
+        const vehicle = vehicles.find((v) => v.id === job.vehicleId);
+        const haystack = [
+          job.title,
+          customer?.name ?? '',
+          vehicle?.make ?? '',
+          vehicle?.model ?? '',
+        ]
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [sorted, search, statusFilter, priorityFilter, customers, vehicles]);
 
   return (
-    <Shell>
-      {/* Page header */}
-      <div className="page-header">
-        <div>
-          <p className="section-label">Strip Jobs</p>
-          <h1 className="page-title mt-1">Job Board</h1>
-          <p className="page-subtitle">
-            {openJobs.length} open &middot; {filteredJobs.length} showing
-          </p>
-        </div>
-        <Link href="/jobs/new" className="btn-primary">
-          <Plus className="h-4 w-4" />
-          New Strip Job
-        </Link>
-      </div>
+    <div className="animate-in">
+      <PageHeader
+        label="Workshop"
+        title="Jobs"
+        subtitle={`${jobs.length} total jobs`}
+        actions={
+          <Link href="/jobs/new" className="btn btn-primary">
+            <Plus size={16} weight="bold" />
+            New Job
+          </Link>
+        }
+      />
 
-      {/* Search + filter bar */}
-      <div className="card mb-4 p-3">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search job no, rego, make / model…"
-            className="input pl-9 py-2"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-              aria-label="Clear search"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <button
-            onClick={() => setStatusFilter('all')}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-              statusFilter === 'all'
-                ? 'bg-primary text-slate-900'
-                : 'bg-white/[0.08] text-slate-300 hover:bg-white/[0.12]'
-            }`}
-          >
-            All
-          </button>
-          {filterStatuses.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setStatusFilter(statusFilter === s.id ? 'all' : s.id)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                statusFilter === s.id
-                  ? 'bg-primary text-slate-900'
-                  : 'bg-white/[0.08] text-slate-300 hover:bg-white/[0.12]'
-              }`}
-            >
-              {s.label}
-            </button>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mb-5">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search jobs, customers, vehicles…"
+        />
+        <select
+          className="input select"
+          style={{ width: 'auto', minWidth: '10rem' }}
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as '' | JobStatus)}
+        >
+          {STATUS_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
           ))}
-        </div>
+        </select>
+        <select
+          className="input select"
+          style={{ width: 'auto', minWidth: '9rem' }}
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value as '' | JobPriority)}
+        >
+          {PRIORITY_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {/* Table */}
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
+      {/* Results summary */}
+      <p className="section-label mb-3">
+        Showing {filtered.length} of {jobs.length} jobs
+      </p>
+
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Wrench size={40} />}
+          title="No jobs found"
+          description="Try adjusting your search or filters, or create a new job."
+          action={
+            <Link href="/jobs/new" className="btn btn-primary">
+              <Plus size={15} weight="bold" />
+              New Job
+            </Link>
+          }
+        />
+      ) : (
+        <div className="card overflow-hidden">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Job No</th>
-                <th>Donor Vehicle</th>
-                <th>Condition</th>
-                <th>Dismantler</th>
-                <th>Completion</th>
+                <th>Job #</th>
+                <th>Title</th>
+                <th>Customer</th>
+                <th>Vehicle</th>
                 <th>Status</th>
-                <th />
+                <th>Priority</th>
+                <th>Due Date</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
-              {filteredJobs.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <Car className="h-8 w-8 text-slate-600" />
-                      <p className="text-sm font-semibold text-slate-400">No jobs found</p>
-                      <p className="text-xs text-slate-500">
-                        Try adjusting your search or filter
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-              {filteredJobs.map((job) => {
-                const dv = job.donorVehicle;
-                const cond = CONDITION_LABELS[dv.condition];
+              {filtered.map((job, index) => {
+                const customer = customers.find((c) => c.id === job.customerId);
+                const vehicle = vehicles.find((v) => v.id === job.vehicleId);
+                const jobNumber = `J-${String(index + 1).padStart(4, '0')}`;
+                const overdue =
+                  !['completed', 'cancelled'].includes(job.status) &&
+                  getDaysOverdue(job.dueDate) > 0;
+
                 return (
                   <tr key={job.id}>
-                    {/* Job No */}
                     <td>
-                      <span className="mono font-semibold text-primary">{job.number}</span>
-                      <p className="mt-0.5 text-xs text-slate-500">{job.category}</p>
-                    </td>
-
-                    {/* Donor Vehicle */}
-                    <td>
-                      <span className="font-medium text-slate-200">
-                        {dv.make} {dv.model} {dv.year}
+                      <span className="mono" style={{ color: 'var(--text-muted)' }}>
+                        {jobNumber}
                       </span>
-                      <p className="mono mt-0.5 text-xs text-slate-500">{dv.rego}</p>
                     </td>
-
-                    {/* Condition */}
-                    <td>
-                      {cond ? (
-                        <span className={`text-xs font-semibold ${cond.color}`}>
-                          {cond.label}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-slate-500">—</span>
-                      )}
-                    </td>
-
-                    {/* Dismantler */}
-                    <td className="text-sm text-slate-300">
-                      {job.dismantlerId
-                        ? getDismantlerName(job.dismantlerId)
-                        : <span className="text-slate-600">—</span>}
-                    </td>
-
-                    {/* Completion */}
-                    <td>
-                      <CompletionChip dateStr={job.estimatedCompletionDate} />
-                    </td>
-
-                    {/* Status */}
-                    <td>
-                      <StatusBadge
-                        label={getStatusLabel(job.status)}
-                        variant={getStatusColor(job.status)}
-                      />
-                    </td>
-
-                    {/* View */}
                     <td>
                       <Link
                         href={`/jobs/${job.id}`}
-                        className="btn-ghost px-2.5 py-1.5 text-xs"
-                        title={`View job ${job.number}`}
+                        className="font-medium hover:underline"
+                        style={{ color: 'var(--text-primary)', textDecoration: 'none' }}
                       >
-                        View <ChevronRight className="h-3.5 w-3.5" />
+                        {job.title}
+                      </Link>
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)' }}>
+                      {customer?.name ?? '—'}
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
+                      {vehicle ? `${vehicle.make} ${vehicle.model}` : '—'}
+                    </td>
+                    <td>
+                      <StatusBadge status={job.status} />
+                    </td>
+                    <td>
+                      <PriorityBadge priority={job.priority} />
+                    </td>
+                    <td>
+                      <span
+                        style={{
+                          color: overdue ? '#f87171' : 'var(--text-secondary)',
+                          fontWeight: overdue ? 600 : 400,
+                          fontSize: '0.8125rem',
+                        }}
+                      >
+                        {formatDate(job.dueDate)}
+                        {overdue && (
+                          <span
+                            className="ml-1"
+                            style={{ color: '#f87171', fontSize: '0.6875rem' }}
+                          >
+                            ({getDaysOverdue(job.dueDate)}d overdue)
+                          </span>
+                        )}
+                      </span>
+                    </td>
+                    <td>
+                      <Link
+                        href={`/jobs/${job.id}`}
+                        className="btn btn-ghost"
+                        style={{ padding: '0.25rem 0.5rem' }}
+                        aria-label={`View ${job.title}`}
+                      >
+                        <CaretRight size={16} style={{ color: 'var(--text-muted)' }} />
                       </Link>
                     </td>
                   </tr>
@@ -246,13 +212,7 @@ export default function JobsPage() {
             </tbody>
           </table>
         </div>
-
-        {filteredJobs.length > 0 && (
-          <div className="border-t border-white/[0.06] px-4 py-2.5 text-xs text-slate-500">
-            Showing {filteredJobs.length} of {branchJobs.length} jobs
-          </div>
-        )}
-      </div>
-    </Shell>
+      )}
+    </div>
   );
 }
