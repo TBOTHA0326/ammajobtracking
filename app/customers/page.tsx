@@ -50,7 +50,7 @@ export default function CustomersPage() {
           }
         />
       ) : (
-        <div className="card overflow-hidden">
+        <div className="card table-scroll">
           <table className="data-table">
             <thead>
               <tr>

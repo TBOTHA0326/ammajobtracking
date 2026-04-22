@@ -126,7 +126,7 @@ export default function JobsPage() {
           }
         />
       ) : (
-        <div className="card overflow-hidden">
+        <div className="card table-scroll">
           <table className="data-table">
             <thead>
               <tr>

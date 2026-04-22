@@ -38,7 +38,7 @@ export default function SuppliersPage() {
           description="Search for a supplier by name, contact, or location."
         />
       ) : (
-        <div className="card overflow-hidden">
+        <div className="card table-scroll">
           <table className="data-table">
             <thead>
               <tr>

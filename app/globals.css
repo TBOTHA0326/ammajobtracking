@@ -163,8 +163,12 @@ button, input, select, textarea { font: inherit; }
 }
 
 /* ── Table ── */
+.table-scroll {
+  overflow-x: auto;
+}
 .data-table {
   width: 100%;
+  min-width: 100%;
   font-size: 0.875rem;
   text-align: left;
   border-collapse: separate;

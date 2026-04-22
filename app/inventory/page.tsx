@@ -39,7 +39,7 @@ export default function InventoryPage() {
           description="Refine your search or add new inventory from the supplier portal."
         />
       ) : (
-        <div className="card overflow-hidden">
+        <div className="card table-scroll">
           <table className="data-table">
             <thead>
               <tr>

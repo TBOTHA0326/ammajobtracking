@@ -57,7 +57,7 @@ export default function VehiclesPage() {
           }
         />
       ) : (
-        <div className="card overflow-hidden">
+        <div className="card table-scroll">
           <table className="data-table">
             <thead>
               <tr>
