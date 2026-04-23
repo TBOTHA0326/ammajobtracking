@@ -313,107 +313,111 @@ function ShellInner({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      {/* ── Mobile top bar ── */}
-      <header
-        className="mobile-topbar"
-        style={{
-          display: 'none',
-          position: 'sticky',
-          top: 0,
-          zIndex: 30,
-          height: '56px',
-          background: SIDEBAR_BG,
-          borderBottom: '1px solid rgba(15,23,42,0.08)',
-          alignItems: 'center',
-          padding: '0 16px',
-          gap: '12px',
-        }}
-      >
-        {/* Hamburger */}
-        <button
-          onClick={() => setMobileOpen(true)}
+      {/* ── Right column: topbar + main (stacked vertically) ── */}
+      <div className="right-col" style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+        {/* ── Mobile top bar ── */}
+        <header
+          className="mobile-topbar"
           style={{
-            background: 'none',
-            border: 'none',
-            color: '#475569',
-            cursor: 'pointer',
-            padding: '4px',
-            display: 'flex',
+            display: 'none',
+            position: 'sticky',
+            top: 0,
+            zIndex: 30,
+            height: '56px',
+            background: SIDEBAR_BG,
+            borderBottom: '1px solid rgba(15,23,42,0.08)',
             alignItems: 'center',
+            padding: '0 16px',
+            gap: '12px',
+            flexShrink: 0,
           }}
         >
-          <List size={22} />
-        </button>
-
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-          <div
+          {/* Hamburger */}
+          <button
+            onClick={() => setMobileOpen(true)}
             style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '6px',
-              background: '#f97316',
+              background: 'none',
+              border: 'none',
+              color: '#475569',
+              cursor: 'pointer',
+              padding: '4px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
             }}
           >
-            <Wrench size={14} weight="bold" color="#fff" />
+            <List size={22} />
+          </button>
+
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+            <div
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '6px',
+                background: '#f97316',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Wrench size={14} weight="bold" color="#fff" />
+            </div>
+            <span
+              style={{
+                fontSize: '13px',
+                fontWeight: 700,
+                color: '#0f172a',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              Amma Spares
+            </span>
           </div>
-          <span
+
+          {/* Branch select */}
+          <select
+            value={activeBranch}
+            onChange={e => setActiveBranch(e.target.value)}
+            className="select input"
             style={{
-              fontSize: '13px',
-              fontWeight: 700,
-              color: '#0f172a',
-              letterSpacing: '-0.01em',
+              width: 'auto',
+              fontSize: '12px',
+              padding: '4px 28px 4px 8px',
+              maxWidth: '140px',
             }}
           >
-            Amma Spares
-          </span>
-        </div>
+            {branches.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        </header>
 
-        {/* Branch select */}
-        <select
-          value={activeBranch}
-          onChange={e => setActiveBranch(e.target.value)}
-          className="select input"
+        {/* ── Main content area ── */}
+        <main
           style={{
-            width: 'auto',
-            fontSize: '12px',
-            padding: '4px 28px 4px 8px',
-            maxWidth: '140px',
+            flex: 1,
+            minWidth: 0,
+            padding: '32px 32px',
           }}
+          className="main-content"
         >
-          {branches.map(b => (
-            <option key={b.id} value={b.id}>{b.name}</option>
-          ))}
-        </select>
-      </header>
-
-      {/* ── Main content area ── */}
-      <main
-        style={{
-          flex: 1,
-          minWidth: 0,
-          padding: '32px 32px',
-        }}
-        className="main-content"
-      >
-        {children}
-      </main>
+          {children}
+        </main>
+      </div>
 
       {/* Responsive styles injected via a style tag */}
       <style>{`
         @media (min-width: 768px) {
           .md-sidebar { display: block !important; }
           .mobile-topbar { display: none !important; }
-          .main-content { margin-left: 260px; width: calc(100% - 260px); }
+          .right-col { margin-left: 260px; }
         }
         @media (max-width: 767px) {
           .md-sidebar { display: none !important; }
           .mobile-topbar { display: flex !important; }
-          .main-content { margin-left: 0; padding: 20px 16px !important; width: 100% !important; }
+          .main-content { padding: 20px 16px !important; }
         }
       `}</style>
     </div>
