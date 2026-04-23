@@ -160,8 +160,8 @@ export function SearchInput({
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="input pl-9 pr-4"
-        style={{ width: '100%', maxWidth: '20rem' }}
+        className="input"
+        style={{ width: '100%', maxWidth: '20rem', paddingLeft: '2.25rem', paddingRight: '1rem' }}
       />
     </div>
   );

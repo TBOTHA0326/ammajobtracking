@@ -3,6 +3,7 @@ import type { Branch, Customer, Vehicle, Technician, Part, Supplier, Job } from 
 // ── Branches ──────────────────────────────────────────────────────────────────
 
 export const branches: Branch[] = [
+  { id: 'br-00', name: 'Vereeniging' },
   { id: 'br-01', name: 'East Rand' },
   { id: 'br-02', name: 'Northgate' },
   { id: 'br-03', name: 'South Rand' },
