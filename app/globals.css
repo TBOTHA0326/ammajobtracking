@@ -189,14 +189,18 @@ html, body, #__next {
 .table-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  /* prevent the card from expanding beyond viewport */
+  max-width: 100%;
 }
 .data-table {
   width: 100%;
-  min-width: 100%;
+  /* ensure table never shrinks below a readable width — triggers scroll */
+  min-width: 560px;
   font-size: 0.875rem;
   text-align: left;
   border-collapse: separate;
   border-spacing: 0;
+  white-space: nowrap;
 }
 .data-table th,
 .data-table td {
@@ -211,11 +215,18 @@ html, body, #__next {
   background: var(--bg);
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 .data-table tbody td {
   padding: 0.875rem 1rem;
   color: var(--text-primary);
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+/* allow multi-line content cells to wrap (title, name, address) */
+.data-table td.wrap {
+  white-space: normal;
+  word-break: break-word;
 }
 .data-table tbody tr:last-child td { border-bottom: none; }
 .data-table tbody tr { transition: background 120ms ease; }
@@ -256,6 +267,27 @@ html, body, #__next {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
+}
+
+/* ── Search input wrapper — full width on mobile ── */
+.search-input-wrap {
+  width: 100%;
+  max-width: 20rem;
+}
+@media (max-width: 639px) {
+  .search-input-wrap {
+    max-width: 100%;
+  }
+  /* filter rows: stack vertically on mobile */
+  .flex.flex-wrap.gap-3 {
+    flex-direction: column;
+  }
+  .flex.flex-wrap.gap-3 .input,
+  .flex.flex-wrap.gap-3 .select {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
 }
 
 /* ── Scrollbar ── */

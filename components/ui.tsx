@@ -143,7 +143,7 @@ export function SearchInput({
   placeholder?: string;
 }) {
   return (
-    <div className="relative">
+    <div className="relative search-input-wrap">
       <svg
         className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4"
         style={{ color: 'var(--text-muted)' }}
@@ -161,7 +161,7 @@ export function SearchInput({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         className="input pl-9 pr-4"
-        style={{ maxWidth: '20rem' }}
+        style={{ width: '100%', maxWidth: '20rem' }}
       />
     </div>
   );

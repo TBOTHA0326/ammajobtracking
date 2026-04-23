@@ -117,7 +117,7 @@ export default function DashboardPage() {
   }));
 
   return (
-    <div className="animate-in p-6">
+    <div className="animate-in">
       <PageHeader
         label="Overview"
         title="Dashboard"
@@ -261,8 +261,8 @@ export default function DashboardPage() {
               View all
             </Link>
           </div>
-          <div className="overflow-x-auto">
-            <table className="data-table w-full">
+          <div className="table-scroll">
+            <table className="data-table">
               <thead>
                 <tr>
                   <th>Job</th>
